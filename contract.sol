@@ -32,6 +32,8 @@ contract CryptoParty
                 nodes[_wallet].parent = address(0);
                 nodes[_wallet].wallet = _wallet;
                 nodes[_wallet].start_time = now;
+                
+                emit Branch(msg.sender, 0);
             }
 			
 			update(_wallet, false);
@@ -46,15 +48,28 @@ contract CryptoParty
             });
 			
 			wallet_to_participant[_wallet] = Participant(0, 0, 0, now, true);
+			
+			emit Branch(msg.sender, 0);
         }
-		
-		
     }
 	
+	function update_branch(address _wallet) private
+	{
+		uint cnt = 0; 
+		while(validate_parent(nodes[_wallet].parent))
+		{
+			_wallet = nodes[_wallet].parent;
+			update(_wallet, true);
+			cnt++;
+		}
+		
+		emit Branch(msg.sender, cnt);
+	}
+	    
     function add(address _parent) public {
 		
 		address _wallet = msg.sender;
-		
+	    
         if(nodes[_wallet].isValue)
         {
             if(now - nodes[_wallet].start_time > 24 hours)
@@ -65,15 +80,7 @@ contract CryptoParty
                 
                 update(_wallet, false);
 				
-                uint cnt = 0; 
-                while(validate_parent(nodes[_wallet].parent))
-                {
-                    _wallet = nodes[_wallet].parent;
-                    update(_wallet, true);
-					cnt++;
-                }
-				
-				emit Branch(msg.sender, cnt);
+				update_branch(_wallet);
             }
         }
         else
@@ -86,10 +93,12 @@ contract CryptoParty
             });
 			
 			wallet_to_participant[_wallet] = Participant(0, 0, 0, now, true);
+			
+			update_branch(_wallet);
         }
     }
     
-    function validate_parent(address p_wallet) public view returns (bool)
+    function validate_parent(address p_wallet) private view returns (bool)
     {
         if(!nodes[p_wallet].isValue)
             return false; 
@@ -100,8 +109,9 @@ contract CryptoParty
         return true; 
     }
     
-    function update(address wallet, bool add_rating) public
+    function update(address wallet, bool add_rating) private
     {
+		
         Participant storage p = wallet_to_participant[wallet];
         
         if(!p.isValue)
@@ -135,12 +145,14 @@ contract CryptoParty
         require(p.num_coins >= amount);
         
         p.num_coins -= amount; 
+        wallet_to_participant[_from] = p;
         wallet_to_participant[_to].num_coins += amount; 
     }
     
 	event Value(    
 		address wallet, 
         uint _value, 
+		uint _rating, 
 		bool isValid
     );
 	
@@ -154,9 +166,9 @@ contract CryptoParty
 		
 		if(wallet_to_participant[msg.sender].isValue)
 		{
-			emit Value(msg.sender, wallet_to_participant[msg.sender].num_coins, true);
+			emit Value(msg.sender, wallet_to_participant[msg.sender].num_coins, wallet_to_participant[msg.sender].rating_new, true);
 		}
         else 
-			emit Value(msg.sender, 0, false);
+			emit Value(msg.sender, 0, 0, false);
     }
 }
