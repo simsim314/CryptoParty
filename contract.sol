@@ -65,7 +65,7 @@ contract CryptoParty
                 while(validate_parent(nodes[_wallet].parent))
                 {
                     _wallet = nodes[_wallet].parent;
-                    update(_wallet);
+                    update(_wallet, true);
                 }
             }
         }
@@ -93,18 +93,17 @@ contract CryptoParty
         return true; 
     }
     
-    function update(address wallet) public
+    function update(address wallet, bool add_rating = false) public
     {
         Participant storage p = wallet_to_participant[wallet];
         
         if(!p.isValue)
             return; 
-            
-        if(now - p.last_update_time < 1 hours)
-        {
+        
+        if(add_rating)
             p.rating_new++;
-        }
-        else
+        
+        if(now - p.last_update_time > 1 hours)
         {
             uint numh = uint((now - p.last_update_time) / (1 hours));
             p.num_coins += p.rating_old;
