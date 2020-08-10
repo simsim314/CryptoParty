@@ -73,7 +73,7 @@ contract CryptoParty
 					cnt++;
                 }
 				
-				emit Branch(cnt);
+				emit Branch(msg.sender, cnt);
             }
         }
         else
@@ -138,12 +138,14 @@ contract CryptoParty
         wallet_to_participant[_to].num_coins += amount; 
     }
     
-	event Value(      
+	event Value(    
+		address wallet, 
         uint _value, 
 		bool isValid
     );
 	
 	event Branch(      
+		address wallet, 
         uint len
     );
 	
@@ -152,10 +154,9 @@ contract CryptoParty
 		
 		if(wallet_to_participant[msg.sender].isValue)
 		{
-			emit Value(wallet_to_participant[msg.sender].num_coins, true);
+			emit Value(msg.sender, wallet_to_participant[msg.sender].num_coins, true);
 		}
         else 
-			emit Value(0, false);
+			emit Value(msg.sender, 0, false);
     }
-
 }
