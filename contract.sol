@@ -22,7 +22,8 @@ contract CryptoParty
     mapping(address => Participant) public wallet_to_participant; 
     uint total_coins; 
     
-	function new_root(address _wallet) public {
+	function new_root() public {
+		address _wallet = msg.sender;
 		
 		if(nodes[_wallet].isValue)
         {
@@ -33,7 +34,7 @@ contract CryptoParty
                 nodes[_wallet].start_time = now;
             }
 			
-			update(_wallet);
+			update(_wallet, false);
         }
         else
         {
@@ -50,8 +51,10 @@ contract CryptoParty
 		
     }
 	
-    function add(address _parent, address _wallet) public {
-    
+    function add(address _parent) public {
+		
+		address _wallet = msg.sender;
+		
         if(nodes[_wallet].isValue)
         {
             if(now - nodes[_wallet].start_time > 24 hours)
@@ -60,13 +63,17 @@ contract CryptoParty
                 nodes[_wallet].wallet = _wallet;
                 nodes[_wallet].start_time = now;
                 
-                update(_wallet);
-                
+                update(_wallet, false);
+				
+                uint cnt = 0; 
                 while(validate_parent(nodes[_wallet].parent))
                 {
                     _wallet = nodes[_wallet].parent;
                     update(_wallet, true);
+					cnt++;
                 }
+				
+				emit Branch(cnt);
             }
         }
         else
@@ -93,7 +100,7 @@ contract CryptoParty
         return true; 
     }
     
-    function update(address wallet, bool add_rating = false) public
+    function update(address wallet, bool add_rating) public
     {
         Participant storage p = wallet_to_participant[wallet];
         
@@ -116,8 +123,10 @@ contract CryptoParty
         wallet_to_participant[wallet] = p; 
     }
     
-    function transfer(address _from, address _to, uint amount) public
+    function transfer(address _to, uint amount) public
     {
+		address _from = msg.sender; 
+		
         require(amount > 0);
         require(wallet_to_participant[_from].isValue);
         require(wallet_to_participant[_to].isValue);
@@ -129,4 +138,24 @@ contract CryptoParty
         wallet_to_participant[_to].num_coins += amount; 
     }
     
+	event Value(      
+        uint _value, 
+		bool isValid
+    );
+	
+	event Branch(      
+        uint len
+    );
+	
+	function MyValue() public  {
+		update(msg.sender, false);
+		
+		if(wallet_to_participant[msg.sender].isValue)
+		{
+			emit Value(wallet_to_participant[msg.sender].num_coins, true);
+		}
+        else 
+			emit Value(0, false);
+    }
+
 }
